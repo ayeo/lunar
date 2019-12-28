@@ -1,44 +1,51 @@
 import random
 import numpy as np
-from collections import deque
 
+from collections import deque
+from keras.engine.saving import load_model
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
-
-GAMMA = .75
-ALPHA = .0002
-EPSILON = .8
-EPSILON_DECAY = .99995
+GAMMA = .99
+ALPHA = .0001
+EPSILON = 1.0
+EPSILON_DECAY = .995
 EPSILON_MIN = .001
 
+FILENAME = 'model.h5'
+MEMORY = 500000
+BATCH = 32
+
 class DQN:
-    def __init__(self, observations, actions, memory, batch):
-        self.input = observations
-        self.output = actions
-        self.memory = deque(maxlen=memory)
-        self.batch = batch
+    def __init__(self, env):
+        self.filename = FILENAME
+        self.observations = env.observation_space.shape[0]
+        self.actions = env.action_space.n
+        self.build_model()
 
+    def build_model(self):
+        self.memory = deque(maxlen=MEMORY)
+        self.batch = BATCH
         self.epsilon = EPSILON
-
         self.model = Sequential()
-        self.model.add(Dense(12, input_dim=observations, activation="relu"))
-        self.model.add(Dense(24, activation="relu"))
-        self.model.add(Dense(24, activation="relu"))
-        self.model.add(Dense(actions, activation="linear"))
+        self.model.add(Dense(512, input_dim=self.observations, activation="relu"))
+        self.model.add(Dense(256, activation="relu"))
+        self.model.add(Dense(self.actions, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=ALPHA))
 
     def remember(self, state, action, reward, next_state, done):
-        state = np.reshape(state, [1, self.input])
-        next_state = np.reshape(next_state, [1, self.input])
+        state = np.reshape(state, [1, self.observations])
+        next_state = np.reshape(next_state, [1, self.observations])
         self.memory.append((state, action, reward, next_state, done))
 
-    def act(self, state):
-        state = np.reshape(state, [1, self.input])
+    def decrease_epsilon(self):
         self.epsilon = max(EPSILON_MIN, self.epsilon * EPSILON_DECAY)
-        if np.random.rand() < self.epsilon:
-            return random.randrange(self.output)
+
+    def act(self, state, explore=True):
+        state = np.reshape(state, [1, self.observations])
+        if explore and np.random.rand() < self.epsilon:
+            return random.randrange(self.actions)
         q_values = self.model.predict(state)
 
         return np.argmax(q_values[0])
@@ -46,8 +53,9 @@ class DQN:
     def replay(self):
         if len(self.memory) < self.batch:
             return
+
         for state, action, reward, next_state, done in random.sample(self.memory, self.batch):
-            target = reward
+            target = 0
             if not done:
                 target = reward + GAMMA * np.max(self.model.predict(next_state)[0])
 
@@ -56,9 +64,8 @@ class DQN:
             target_f[0][action] = target
             self.model.fit(state, target_f, epochs=1, verbose=0)
 
+    def save(self):
+        self.model.save(self.filename, overwrite=True)
 
-    def save(self, filename):
-        self.model.save_weights(filename)
-
-    def load(self, filename):
-        self.model.load_weights(filename)
+    def load(self):
+        self.model = load_model(self.filename)
