@@ -55,7 +55,6 @@ class DQN:
         vector = self.model.predict_on_batch(states)
         indexes = np.array(range(self.batch))
         vector[indexes, actions] = targets
-
         self.model.fit(states, vector, epochs=1, verbose=0)
 
     def get_sample(self):
