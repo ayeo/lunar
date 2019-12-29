@@ -31,38 +31,42 @@ class DQN:
         self.model = Sequential()
         self.model.add(Dense(512, input_dim=self.observations, activation="relu"))
         self.model.add(Dense(256, activation="relu"))
+        # self.model.add(Dense(256, activation="relu"))
         self.model.add(Dense(self.actions, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=ALPHA))
 
     def remember(self, state, action, reward, next_state, done):
-        state = np.reshape(state, [1, self.observations])
-        next_state = np.reshape(next_state, [1, self.observations])
         self.memory.append((state, action, reward, next_state, done))
 
-    def decrease_epsilon(self):
+    def adjust_epsilon(self):
         self.epsilon = max(EPSILON_MIN, self.epsilon * EPSILON_DECAY)
 
     def act(self, state, explore=True):
         state = np.reshape(state, [1, self.observations])
         if explore and np.random.rand() < self.epsilon:
             return random.randrange(self.actions)
-        q_values = self.model.predict(state)
-
-        return np.argmax(q_values[0])
+        return np.argmax(self.model.predict(state))
 
     def replay(self):
         if len(self.memory) < self.batch:
             return
+        states, actions, rewards, next_states, done_list = self.get_sample()
+        targets = rewards + GAMMA * (np.amax(self.model.predict_on_batch(next_states), axis=1)) * (1 - done_list)
+        vector = self.model.predict_on_batch(states)
+        indexes = np.array(range(self.batch))
+        vector[indexes, actions] = targets
 
-        for state, action, reward, next_state, done in random.sample(self.memory, self.batch):
-            target = 0
-            if not done:
-                target = reward + GAMMA * np.max(self.model.predict(next_state)[0])
+        self.model.fit(states, vector, epochs=1, verbose=0)
 
-
-            target_f = self.model.predict(state)
-            target_f[0][action] = target
-            self.model.fit(state, target_f, epochs=1, verbose=0)
+    def get_sample(self):
+        #todo: how to conert random sample to nparray?
+        random_sample = random.sample(self.memory, self.batch)
+        states = np.array([i[0] for i in random_sample])
+        actions = np.array([i[1] for i in random_sample])
+        rewards = np.array([i[2] for i in random_sample])
+        next_states = np.array([i[3] for i in random_sample])
+        done_list = np.array([i[4] for i in random_sample])
+        return states, actions, rewards, next_states, done_list
 
     def save(self):
         self.model.save(self.filename, overwrite=True)
