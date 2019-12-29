@@ -29,9 +29,9 @@ class DQN:
         self.batch = BATCH
         self.epsilon = EPSILON
         self.model = Sequential()
-        self.model.add(Dense(512, input_dim=self.observations, activation="relu"))
-        self.model.add(Dense(256, activation="relu"))
-        # self.model.add(Dense(256, activation="relu"))
+        self.model.add(Dense(128, input_dim=self.observations, activation="relu"))
+        self.model.add(Dense(128, activation="relu"))
+        self.model.add(Dense(128, activation="relu"))
         self.model.add(Dense(self.actions, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=ALPHA))
 
