@@ -1,23 +1,20 @@
 import gym
+import numpy as np
 
 from dqn import DQN
+
+target = 230
+sample_size = 200
 
 env = gym.make('LunarLander-v2')
 dqn = DQN(env)
 
-# todo: implement early stop
-epochs = 1000
-save_frequency = 25
-
 e = 1
-while epochs - e > 0:
+scores_list = []
+while True:
     state = env.reset()
     done = False
     score = 0
-
-    if (epochs - e) % save_frequency == 0:
-        dqn.save()
-        print('Model saved')
 
     while not done:
         env.render()
@@ -28,9 +25,20 @@ while epochs - e > 0:
         state = next_state
         score += reward
 
-    dqn.adjust_epsilon()
-    # todo: More important here is the average of few last episodes
-    print("epoch: " + str(e) + " score: " + str(score) + " eps: " + str(dqn.epsilon))
-    e += 1
+    scores_list.append(score)
+    last_rewards_mean = np.mean(scores_list[sample_size * -1:])
+    print(
+        str(e) + ": \t\t" +
+        str(round(float(score))) + "\t\t" +
+        str(round(float(last_rewards_mean))) + "\t\t" +
+        str(round(dqn.epsilon, 3))
+    )
 
+    dqn.adjust_epsilon()
+    e += 1
+    if last_rewards_mean > target:
+        print("DQN trained")
+        break
+
+dqn.save()
 env.close()

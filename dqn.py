@@ -9,12 +9,12 @@ from keras.optimizers import Adam
 
 GAMMA = .99
 ALPHA = .0001
-EPSILON = 1.0
+EPSILON = .5
 EPSILON_DECAY = .995
-EPSILON_MIN = .001
+EPSILON_MIN = .01
 
 FILENAME = 'model.h5'
-MEMORY = 500000
+MEMORY = 100000
 BATCH = 32
 
 class DQN:
@@ -29,9 +29,8 @@ class DQN:
         self.batch = BATCH
         self.epsilon = EPSILON
         self.model = Sequential()
-        self.model.add(Dense(128, input_dim=self.observations, activation="relu"))
-        self.model.add(Dense(128, activation="relu"))
-        self.model.add(Dense(128, activation="relu"))
+        self.model.add(Dense(512, input_dim=self.observations, activation="relu"))
+        self.model.add(Dense(512, activation="relu"))
         self.model.add(Dense(self.actions, activation="linear"))
         self.model.compile(loss="mse", optimizer=Adam(lr=ALPHA))
 
@@ -58,7 +57,7 @@ class DQN:
         self.model.fit(states, vector, epochs=1, verbose=0)
 
     def get_sample(self):
-        #todo: how to conert random sample to nparray?
+        #todo: how to convert list to ndarray?
         random_sample = random.sample(self.memory, self.batch)
         states = np.array([i[0] for i in random_sample])
         actions = np.array([i[1] for i in random_sample])
