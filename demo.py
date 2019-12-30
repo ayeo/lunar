@@ -4,12 +4,12 @@ from gym.wrappers import Monitor
 from dqn import DQN
 
 env = gym.make('LunarLander-v2')
-#env = Monitor(env1, 'videos')
+#env = Monitor(env, 'videos', video_callable=lambda episode_id: True)
 dqn = DQN(env)
 dqn.load()
 
 
-for x in range(10):
+for x in range(20):
     state = env.reset()
     done = False
 

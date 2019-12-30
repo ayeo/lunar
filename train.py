@@ -3,8 +3,8 @@ import numpy as np
 
 from dqn import DQN
 
-target = 230
-sample_size = 200
+target = 270
+sample_size = 50
 
 env = gym.make('LunarLander-v2')
 dqn = DQN(env)
